@@ -1,0 +1,112 @@
+[0.401s] Invoking command in '/home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake /home/unitree/unitree_ros2/Go2_ROS2_example/src -DCMAKE_INSTALL_PREFIX=/home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo
+[0.517s] -- The C compiler identification is GNU 9.4.0
+[0.615s] -- The CXX compiler identification is GNU 9.4.0
+[0.624s] -- Check for working C compiler: /usr/bin/cc
+[0.763s] -- Check for working C compiler: /usr/bin/cc -- works
+[0.765s] -- Detecting C compiler ABI info
+[0.914s] -- Detecting C compiler ABI info - done
+[0.948s] -- Detecting C compile features
+[0.949s] -- Detecting C compile features - done
+[0.955s] -- Check for working CXX compiler: /usr/bin/c++
+[1.109s] -- Check for working CXX compiler: /usr/bin/c++ -- works
+[1.113s] -- Detecting CXX compiler ABI info
+[1.279s] -- Detecting CXX compiler ABI info - done
+[1.315s] -- Detecting CXX compile features
+[1.316s] -- Detecting CXX compile features - done
+[1.323s] -- Found ament_cmake: 0.9.12 (/opt/ros/foxy/share/ament_cmake/cmake)
+[1.358s] -- Found PythonInterp: /home/unitree/unitree_ros2/.env/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+[1.358s] -- Using PYTHON_EXECUTABLE: /home/unitree/unitree_ros2/.env/bin/python3
+[1.643s] -- Found unitree_go: 0.0.0 (/home/unitree/unitree_ros2/cyclonedds_ws/install/unitree_go/share/unitree_go/cmake)
+[1.710s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[1.724s] -- Found rosidl_adapter: 1.3.1 (/opt/ros/foxy/share/rosidl_adapter/cmake)
+[1.908s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+[1.969s] -- Found FastRTPS: /opt/ros/foxy/include  
+[2.131s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.408s] -- Found unitree_api: 0.0.0 (/home/unitree/unitree_ros2/cyclonedds_ws/install/unitree_api/share/unitree_api/cmake)
+[2.515s] -- Found rclcpp: 2.4.3 (/opt/ros/foxy/share/rclcpp/cmake)
+[2.600s] -- Found rmw_implementation_cmake: 1.0.4 (/opt/ros/foxy/share/rmw_implementation_cmake/cmake)
+[2.603s] -- Using RMW implementation 'rmw_cyclonedds_cpp' as default
+[2.605s] -- Looking for pthread.h
+[2.751s] -- Looking for pthread.h - found
+[2.752s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[2.905s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+[2.905s] -- Looking for pthread_create in pthreads
+[3.039s] -- Looking for pthread_create in pthreads - not found
+[3.039s] -- Looking for pthread_create in pthread
+[3.191s] -- Looking for pthread_create in pthread - found
+[3.193s] -- Found Threads: TRUE  
+[3.470s] -- Found rosbag2_cpp: 0.3.11 (/opt/ros/foxy/share/rosbag2_cpp/cmake)
+[3.557s] -- Setting yaml-cpp_DIR to: '/opt/ros/foxy/share/yaml_cpp_vendor/cmake/../../../opt/yaml_cpp_vendor/lib/cmake/yaml-cpp'
+[3.589s] -- Found ament_lint_auto: 0.9.8 (/opt/ros/foxy/share/ament_lint_auto/cmake)
+[3.796s] -- Added test 'copyright' to check source files copyright and LICENSE
+[3.803s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[3.805s] -- Configured cppcheck include dirs: /home/unitree/unitree_ros2/Go2_ROS2_example/src/include;/home/unitree/unitree_ros2/Go2_ROS2_example/src/include/common;/home/unitree/unitree_ros2/Go2_ROS2_example/src/include/nlohmann
+[3.805s] -- Configured cppcheck exclude dirs and/or files: 
+[3.811s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[3.811s] -- Configured cpplint exclude dirs and/or files: 
+[3.814s] -- Added test 'lint_cmake' to check CMake code style
+[3.821s] -- Added test 'uncrustify' to check C / C++ code style
+[3.821s] -- Configured uncrustify additional arguments: 
+[3.823s] -- Added test 'xmllint' to check XML markup files
+[3.831s] -- Configuring done
+[3.901s] -- Generating done
+[3.905s] -- Build files have been written to: /home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo
+[3.930s] Invoked command in '/home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake /home/unitree/unitree_ros2/Go2_ROS2_example/src -DCMAKE_INSTALL_PREFIX=/home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo
+[3.938s] Invoking command in '/home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake --build /home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo -- -j6 -l6
+[4.032s] [35m[1mScanning dependencies of target sport_mode_ctrl[0m
+[4.032s] [35m[1mScanning dependencies of target read_motion_state[0m
+[4.032s] [35m[1mScanning dependencies of target record_bag[0m
+[4.033s] [35m[1mScanning dependencies of target read_low_state[0m
+[4.033s] [35m[1mScanning dependencies of target low_level_ctrl[0m
+[4.033s] [35m[1mScanning dependencies of target read_wireless_controller[0m
+[4.129s] [  7%] [32mBuilding CXX object CMakeFiles/read_wireless_controller.dir/src/read_wireless_controller.cpp.o[0m
+[4.150s] [ 14%] [32mBuilding CXX object CMakeFiles/low_level_ctrl.dir/src/low_level_ctrl.cpp.o[0m
+[4.160s] [ 21%] [32mBuilding CXX object CMakeFiles/read_low_state.dir/src/read_low_state.cpp.o[0m
+[4.164s] [ 28%] [32mBuilding CXX object CMakeFiles/read_motion_state.dir/src/read_motion_state.cpp.o[0m
+[4.167s] [ 42%] [32mBuilding CXX object CMakeFiles/sport_mode_ctrl.dir/src/sport_mode_ctrl.cpp.o[0m
+[4.169s] [ 42%] [32mBuilding CXX object CMakeFiles/record_bag.dir/src/record_bag.cpp.o[0m
+[12.195s] [ 50%] [32mBuilding CXX object CMakeFiles/low_level_ctrl.dir/src/common/motor_crc.cpp.o[0m
+[15.816s] [ 57%] [32m[1mLinking CXX executable read_wireless_controller[0m
+[15.989s] [ 64%] [32m[1mLinking CXX executable read_motion_state[0m
+[16.149s] [ 71%] [32m[1mLinking CXX executable read_low_state[0m
+[16.463s] [ 71%] Built target read_wireless_controller
+[16.499s] [ 78%] [32mBuilding CXX object CMakeFiles/sport_mode_ctrl.dir/src/common/ros2_sport_client.cpp.o[0m
+[16.579s] [ 78%] Built target read_motion_state
+[16.603s] [ 85%] [32m[1mLinking CXX executable low_level_ctrl[0m
+[16.742s] [ 85%] Built target read_low_state
+[16.974s] [ 85%] Built target low_level_ctrl
+[17.829s] [ 92%] [32m[1mLinking CXX executable record_bag[0m
+[18.386s] [ 92%] Built target record_bag
+[20.269s] [100%] [32m[1mLinking CXX executable sport_mode_ctrl[0m
+[20.843s] [100%] Built target sport_mode_ctrl
+[20.871s] Invoked command in '/home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake --build /home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo -- -j6 -l6
+[20.990s] Invoking command in '/home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake --install /home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo
+[21.013s] -- Install configuration: ""
+[21.013s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/low_level_ctrl
+[21.015s] -- Set runtime path of "/home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/low_level_ctrl" to ""
+[21.015s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/read_low_state
+[21.019s] -- Set runtime path of "/home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/read_low_state" to ""
+[21.019s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/read_motion_state
+[21.023s] -- Set runtime path of "/home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/read_motion_state" to ""
+[21.023s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/read_wireless_controller
+[21.027s] -- Set runtime path of "/home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/read_wireless_controller" to ""
+[21.027s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/record_bag
+[21.032s] -- Set runtime path of "/home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/record_bag" to ""
+[21.032s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/sport_mode_ctrl
+[21.037s] -- Set runtime path of "/home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/lib/go2_demo/sport_mode_ctrl" to ""
+[21.037s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/ament_index/resource_index/package_run_dependencies/go2_demo
+[21.037s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/ament_index/resource_index/parent_prefix_path/go2_demo
+[21.038s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/environment/ament_prefix_path.sh
+[21.038s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/environment/ament_prefix_path.dsv
+[21.039s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/environment/path.sh
+[21.039s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/environment/path.dsv
+[21.039s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/local_setup.bash
+[21.039s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/local_setup.sh
+[21.040s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/local_setup.zsh
+[21.040s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/local_setup.dsv
+[21.040s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/package.dsv
+[21.041s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/ament_index/resource_index/packages/go2_demo
+[21.041s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/cmake/go2_demoConfig.cmake
+[21.041s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/cmake/go2_demoConfig-version.cmake
+[21.041s] -- Installing: /home/unitree/unitree_ros2/Go2_ROS2_example/install/go2_demo/share/go2_demo/package.xml
+[21.046s] Invoked command in '/home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake --install /home/unitree/unitree_ros2/Go2_ROS2_example/build/go2_demo

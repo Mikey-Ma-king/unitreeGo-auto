@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./cyclonedds_ws/install/unitree_go/lib/python3.8/site-packages",
+        "./cyclonedds_ws/install/unitree_api/lib/python3.8/site-packages"
+    ],
+    "cmake.sourceDirectory": "D:/unitree_ros2/Go2_ROS2_example/src"
+}
