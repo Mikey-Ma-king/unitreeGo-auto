@@ -26,9 +26,20 @@
 3. 加载 Unitree ROS 2 工作空间。优先使用仓库内 `cyclonedds_ws/install/setup.bash`，其次使用 `$HOME/cyclonedds_ws/install/setup.bash`；两处都不存在就报错退出。
 4. 若仓库中有 `.env/bin/activate`，则激活该 Python 虚拟环境。
 5. 默认使用 `rmw_cyclonedds_cpp`。如果没有设置 `CYCLONEDDS_URI`，脚本尝试使用 `$HOME/cyclonedds_ws/cyclonedds.xml` 或仓库内 `cyclonedds_ws/src/cyclonedds.xml`。
-6. 后台启动 [`tools/udp_controller_client.py`](./tools/udp_controller_client.py)，由它接收 UDP 遥控器数据并发布到 ROS 话题 `/udp_controller`。该客户端在初始化时还会发布一次 `StandDown`（趴下）请求；因此启动时要注意机器人姿态和周围空间。
-7. 等待 1 秒，然后以前台进程运行所选路线的 Python 入口。
-8. Shell 的退出钩子尝试终止并等待 UDP 客户端。Python 导航程序正常退出或进入异常清理时，会在活动路线仍运行的情况下尝试发送 `StopMove`。
+6. 检查 Python/ROS 命令、路线入口、共享控制器、Sport API 封装、ONNX 文件及 ROS/Python 导入依赖。
+7. 查询 RealSense 设备是否可发现；随后用全零输入、与导航节点相同的张量形状对 ONNX 模型执行一次 smoke inference，并记录执行提供程序及输出形状。
+8. 在最多 20 秒内轮询 ROS 图，要求发现 `/lf/lowstate` 和 `/lf/sportmodestate`。超时则报错退出，且不会启动遥控器客户端。
+9. 后台启动 [`tools/udp_controller_client.py`](./tools/udp_controller_client.py)，由它接收 UDP 遥控器数据并发布到 ROS 话题 `/udp_controller`。该客户端在初始化时还会发布一次 `StandDown`（趴下）请求；因此启动时要注意机器人姿态和周围空间。启动脚本会等待 1 秒并检查该子进程仍存活。
+10. 以前台进程运行所选路线的 Python 入口。启动阶段会打印时间戳、检查阶段和失败原因；日志直接输出到终端，不会自动保存到文件。
+11. Shell 的退出钩子尝试终止并等待 UDP 客户端。Python 导航程序正常退出或进入异常清理时，会在活动路线仍运行的情况下尝试发送 `StopMove`。
+
+可通过 `ROUTE_TOPIC_DISCOVERY_TIMEOUT` 调整机器人话题发现等待时间（秒），默认 20 秒。例如：
+
+```bash
+ROUTE_TOPIC_DISCOVERY_TIMEOUT=40 ./run_dp_circle.sh
+```
+
+这些启动前检查可以发现 ROS 环境、文件、Python 依赖、RealSense 设备发现、模型加载/张量兼容及 DDS 话题发现方面的常见问题，但**不能**证明相机已经成功启动要求的 640×360/30 Hz 深度流、深度图内容有效、模型对真实图像输出合理动作、机器人已进入站立状态或 `StopMove` 一定有效。零输入 smoke inference 只验证模型可以加载并接受当前代码提供的输入形状，不验证避障质量。运行节点的 `Ready` 日志只表示 RealSense 启动后程序进入主循环，并不代表上述项目全部通过。
 
 路线入口映射：
 
@@ -141,7 +152,7 @@ ROS_DISTRO=humble ./run_dp_s_route.sh
 推荐操作顺序：
 
 1. 运行**其中一个**对应的 `.sh` 文件。
-2. 等待日志显示 `Ready`，确认状态和深度相机正常。
+2. 查看启动日志中的各项预检查通过信息；随后等待路线节点报告 RealSense 启动/`Ready`。`Ready` 本身不是首帧深度有效、机器人状态有效或模型避障正确的保证；还要检查状态报告及实际传感器数据。
 3. 启动脚本的遥控器客户端会先发 `StandDown`。根据机器人当前状态，使用遥控器恢复到 `balanceStand`，并确认 `/lf/sportmodestate` 中模式为 1。
 4. 确认环境和急停准备好后，短按 **L2**。程序检查状态新鲜且模式为 `balanceStand`，记录当前位置和姿态，生成路线并开始跟踪。
 5. 观察机器人和日志。需要停止时短按 **L1**，并确认机器人确实停下；如果未停下，立即使用独立急停。
