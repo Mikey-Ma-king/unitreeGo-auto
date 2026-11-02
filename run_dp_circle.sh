@@ -75,13 +75,16 @@ for required_command in python ros2 timeout grep; do
 done
 log "Python executable: $(command -v python)"
 log "ROS 2 CLI executable: $(command -v ros2)"
+cd "$ROOT_DIR"
 
 MODEL_PATH="$ROOT_DIR/diffphysics_inference/nav_large_v_20d_smooth_lag.onnx"
+ROUTE_CONFIG="$ROOT_DIR/route_configs/circle.json"
 for required_file in \
     "$ROOT_DIR/tools/udp_controller_client.py" \
     "$ROOT_DIR/dp_circle.py" \
     "$ROOT_DIR/dp_route_navigation.py" \
     "$ROOT_DIR/sport_client.py" \
+    "$ROUTE_CONFIG" \
     "$MODEL_PATH"; do
     [[ -s "$required_file" ]] || fail "Required file is missing or empty: ${required_file}"
     log "Found required file: ${required_file#$ROOT_DIR/}"
@@ -99,6 +102,11 @@ fi
 log "Running a zero-input ONNX smoke inference before starting the remote-controller bridge..."
 if ! ROUTE_MODEL_PATH="$MODEL_PATH" python -c 'import os, numpy as np, onnxruntime as ort; session=ort.InferenceSession(os.environ["ROUTE_MODEL_PATH"]); outputs=session.run(None, {"img": np.zeros((1, 1, 36, 48), dtype=np.float32), "state": np.zeros((1, 2), dtype=np.float32), "h": np.zeros((1, 192), dtype=np.float32)}); print("ONNX smoke inference passed; providers=" + ", ".join(session.get_providers()) + "; output_shapes=" + repr([getattr(value, "shape", None) for value in outputs]))'; then
     fail "ONNX model load or smoke inference failed. Check the model file, ONNX Runtime installation, and execution provider."
+fi
+
+log "Validating route configuration and command-line overrides before starting the controller..."
+if ! python "$ROOT_DIR/dp_circle.py" --check-config "$@"; then
+    fail "Circle route configuration is invalid. No controller was started."
 fi
 
 DISCOVERY_TIMEOUT="${ROUTE_TOPIC_DISCOVERY_TIMEOUT:-20}"
@@ -131,7 +139,6 @@ done
 [[ -z "$missing_topics" ]] \
     || fail "Robot state topics were not discovered within ${DISCOVERY_TIMEOUT}s. No controller was started."
 
-cd "$ROOT_DIR"
 log "Starting UDP remote-controller bridge. Its initialization sends one StandDown request."
 python tools/udp_controller_client.py &
 UDP_CLIENT_PID=$!
@@ -160,7 +167,7 @@ fi
 log "UDP controller bridge is running (PID ${UDP_CLIENT_PID}); waiting for the route node."
 
 log "Launching Python route node: dp_circle.py"
-if python "$ROOT_DIR/dp_circle.py"; then
+if python "$ROOT_DIR/dp_circle.py" "$@"; then
     log "Python route node exited normally."
 else
     route_exit_status=$?

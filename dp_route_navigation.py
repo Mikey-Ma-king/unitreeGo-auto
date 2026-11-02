@@ -1,3 +1,5 @@
+import argparse
+import json
 import math
 import time
 from pathlib import Path
@@ -22,13 +24,13 @@ MAX_YAW_SPEED = 0.7
 LOOKAHEAD_POINTS = 3
 WAYPOINT_REACHED_DISTANCE = 0.55
 STATE_TIMEOUT = 1.0
-S_ROUTE_LENGTH = 20.0
 S_ROUTE_SPACING = 0.4
 S_BEND_RADIUS = 1.0
 S_TURN_RADIUS = 1.0
-S_BEND_PAIRS = 10
+S_ROUTE_LENGTH = 20.0
 CIRCLE_RADIUS = 10.0
 CIRCLE_SPACING = 0.4
+CONFIG_DIR = Path(__file__).resolve().parent / "route_configs"
 
 
 class Keys:
@@ -69,27 +71,39 @@ def horizontal_basis(q):
     return forward[:2], left[:2]
 
 
-def make_circle_route(position, q):
+def make_circle_route(position, q, radius=CIRCLE_RADIUS, direction="counterclockwise"):
     start = np.asarray(position[:2], dtype=np.float32)
     forward, left = horizontal_basis(q)
-    point_count = max(16, math.ceil(2 * math.pi * CIRCLE_RADIUS / CIRCLE_SPACING))
+    direction_sign = 1 if direction == "counterclockwise" else -1
+    point_count = max(16, math.ceil(2 * math.pi * radius / CIRCLE_SPACING))
     angles = 2 * math.pi * np.arange(1, point_count, dtype=np.float32) / point_count
     return np.asarray(
         [
-            start
-            + CIRCLE_RADIUS * math.sin(angle) * forward
-            + CIRCLE_RADIUS * (1 - math.cos(angle)) * left
+            start + radius * math.sin(angle) * forward
+            + direction_sign * radius * (1 - math.cos(angle)) * left
             for angle in angles
         ],
         dtype=np.float32,
     )
 
 
-def make_s_route(position, q):
+def make_s_route(
+    position,
+    q,
+    first_turn_direction="left",
+    bend_radius=S_BEND_RADIUS,
+    turn_radius=S_TURN_RADIUS,
+    outbound_distance=S_ROUTE_LENGTH,
+):
     start = np.asarray(position[:2], dtype=np.float32)
     forward, left = horizontal_basis(q)
-    if not math.isclose(S_ROUTE_LENGTH, 2 * S_BEND_RADIUS * S_BEND_PAIRS):
-        raise ValueError("S-route length must equal two bend radii per bend pair")
+    first_direction = 1 if first_turn_direction == "left" else -1
+    pair_distance = 2 * bend_radius
+    full_pairs = int(outbound_distance // pair_distance)
+    remaining_distance = outbound_distance - full_pairs * pair_distance
+    if math.isclose(remaining_distance, pair_distance, rel_tol=1e-9, abs_tol=1e-9):
+        full_pairs += 1
+        remaining_distance = 0.0
 
     forward_points = [np.zeros(2, dtype=np.float32)]
     local_position = np.zeros(2, dtype=np.float32)
@@ -122,10 +136,16 @@ def make_s_route(position, q):
         local_position = points[-1].copy()
         heading += direction * sweep
 
-    for pair_index in range(S_BEND_PAIRS):
-        first_direction = 1 if pair_index % 2 == 0 else -1
-        append_arc(first_direction, math.pi / 2, S_BEND_RADIUS)
-        append_arc(-first_direction, math.pi / 2, S_BEND_RADIUS)
+    for pair_index in range(full_pairs):
+        pair_direction = first_direction if pair_index % 2 == 0 else -first_direction
+        append_arc(pair_direction, math.pi / 2, bend_radius)
+        append_arc(-pair_direction, math.pi / 2, bend_radius)
+
+    if remaining_distance > 1e-9:
+        pair_direction = first_direction if full_pairs % 2 == 0 else -first_direction
+        sweep = math.asin(remaining_distance / pair_distance)
+        append_arc(pair_direction, sweep, bend_radius)
+        append_arc(-pair_direction, sweep, bend_radius)
 
     forward_points = np.asarray(forward_points, dtype=np.float32)
 
@@ -134,15 +154,15 @@ def make_s_route(position, q):
             [-math.sin(initial_heading), math.cos(initial_heading)],
             dtype=np.float32,
         )
-        center = initial_position + direction * S_TURN_RADIUS * left_normal
+        center = initial_position + direction * turn_radius * left_normal
         radial = initial_position - center
         start_angle = math.atan2(float(radial[1]), float(radial[0]))
-        steps = max(1, math.ceil(math.pi * S_TURN_RADIUS / S_ROUTE_SPACING))
+        steps = max(1, math.ceil(math.pi * turn_radius / S_ROUTE_SPACING))
         angles = np.linspace(0, math.pi, steps + 1, dtype=np.float32)[1:]
         return np.asarray(
             [
                 center
-                + S_TURN_RADIUS
+                + turn_radius
                 * np.array(
                     [
                         math.cos(start_angle + direction * angle),
@@ -155,10 +175,13 @@ def make_s_route(position, q):
             dtype=np.float32,
         )
 
-    return_offset = np.array([0, 2 * S_TURN_RADIUS], dtype=np.float32)
-    far_turn = semicircle(local_position, heading, direction=1)
+    turn_direction = first_direction
+    return_offset = np.array([0, 2 * turn_direction * turn_radius], dtype=np.float32)
+    far_turn = semicircle(local_position, heading, direction=turn_direction)
     return_points = forward_points[::-1] + return_offset
-    near_turn = semicircle(return_points[-1], heading + math.pi, direction=1)
+    near_turn = semicircle(
+        return_points[-1], heading + math.pi, direction=turn_direction
+    )
     route_local = np.concatenate(
         (forward_points[1:], far_turn, return_points[1:], near_turn),
         axis=0,
@@ -171,8 +194,126 @@ def make_s_route(position, q):
     )
 
 
+def build_argument_parser(route_name):
+    parser = argparse.ArgumentParser(
+        description=f"Run the configured {route_name} route."
+    )
+    default_config = CONFIG_DIR / f"{route_name}.json"
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=default_config,
+        help=f"JSON route configuration (default: {default_config})",
+    )
+    parser.add_argument(
+        "--check-config",
+        action="store_true",
+        help="Validate and print the effective route configuration, then exit.",
+    )
+    if route_name == "circle":
+        parser.add_argument(
+            "--direction",
+            choices=("counterclockwise", "clockwise"),
+            help="Circle direction, relative to the robot's initial heading.",
+        )
+        parser.add_argument("--radius", type=float, help="Circle radius in meters.")
+        expected_keys = {"direction", "radius_m"}
+    else:
+        parser.add_argument(
+            "--first-turn",
+            choices=("left", "right"),
+            help="Direction of the first S bend, relative to the initial heading.",
+        )
+        parser.add_argument(
+            "--bend-radius", type=float, help="Radius of each S-bend arc in meters."
+        )
+        parser.add_argument(
+            "--turnaround-radius",
+            type=float,
+            help="Radius of the two end turnaround semicircles in meters.",
+        )
+        parser.add_argument(
+            "--outbound-distance",
+            type=float,
+            help="S-route outbound longitudinal distance in meters.",
+        )
+        expected_keys = {
+            "first_turn_direction",
+            "bend_radius_m",
+            "turnaround_radius_m",
+            "outbound_distance_m",
+        }
+    return parser, expected_keys
+
+
+def load_route_config(route_name, argv=None):
+    parser, expected_keys = build_argument_parser(route_name)
+    args = parser.parse_args(argv)
+    try:
+        with args.config.open(encoding="utf-8") as config_file:
+            config = json.load(config_file)
+    except OSError as exc:
+        parser.error(f"cannot read config '{args.config}': {exc}")
+    except json.JSONDecodeError as exc:
+        parser.error(
+            f"invalid JSON in '{args.config}' at line {exc.lineno}, "
+            f"column {exc.colno}: {exc.msg}"
+        )
+
+    if not isinstance(config, dict):
+        parser.error(f"config '{args.config}' must contain a JSON object")
+    unknown_keys = set(config) - expected_keys
+    missing_keys = expected_keys - set(config)
+    if unknown_keys:
+        parser.error(f"unknown config key(s): {', '.join(sorted(unknown_keys))}")
+    if missing_keys:
+        parser.error(f"missing config key(s): {', '.join(sorted(missing_keys))}")
+
+    if route_name == "circle":
+        effective = {
+            "direction": config["direction"],
+            "radius_m": config["radius_m"],
+        }
+        if args.direction is not None:
+            effective["direction"] = args.direction
+        if args.radius is not None:
+            effective["radius_m"] = args.radius
+        if effective["direction"] not in ("counterclockwise", "clockwise"):
+            parser.error("config 'direction' must be 'counterclockwise' or 'clockwise'")
+        radius = effective["radius_m"]
+        if isinstance(radius, bool) or not isinstance(radius, (int, float)):
+            parser.error("circle radius_m must be a number")
+        if not math.isfinite(radius) or radius <= 0:
+            parser.error("circle radius_m must be a finite number greater than zero")
+    else:
+        effective = {
+            "first_turn_direction": config["first_turn_direction"],
+            "bend_radius_m": config["bend_radius_m"],
+            "turnaround_radius_m": config["turnaround_radius_m"],
+            "outbound_distance_m": config["outbound_distance_m"],
+        }
+        if args.first_turn is not None:
+            effective["first_turn_direction"] = args.first_turn
+        if args.bend_radius is not None:
+            effective["bend_radius_m"] = args.bend_radius
+        if args.turnaround_radius is not None:
+            effective["turnaround_radius_m"] = args.turnaround_radius
+        if args.outbound_distance is not None:
+            effective["outbound_distance_m"] = args.outbound_distance
+        if effective["first_turn_direction"] not in ("left", "right"):
+            parser.error("config 'first_turn_direction' must be 'left' or 'right'")
+        for key in ("bend_radius_m", "turnaround_radius_m", "outbound_distance_m"):
+            radius = effective[key]
+            if isinstance(radius, bool) or not isinstance(radius, (int, float)):
+                parser.error(f"config '{key}' must be a number")
+            if not math.isfinite(radius) or radius <= 0:
+                parser.error(f"config '{key}' must be a finite number greater than zero")
+
+    return args, effective
+
+
 class RouteNavigation(Node):
-    def __init__(self, route_name):
+    def __init__(self, route_name, route_config):
         super().__init__(f"dp_{route_name}_navigation")
         if route_name not in ("circle", "s_route"):
             raise ValueError(f"Unsupported route: {route_name}")
@@ -180,6 +321,7 @@ class RouteNavigation(Node):
             raise FileNotFoundError(f"Navigation model not found: {MODEL_PATH}")
 
         self.route_name = route_name
+        self.route_config = route_config
         self.model = ort.InferenceSession(str(MODEL_PATH))
         self.hidden = np.zeros((1, 192), dtype=np.float32)
         self.model.run(
@@ -270,9 +412,23 @@ class RouteNavigation(Node):
         if not self.state_is_fresh():
             self.get_logger().error("Cannot start: waiting for fresh robot state")
             return
-        route_builder = make_circle_route if self.route_name == "circle" else make_s_route
         try:
-            self.route = route_builder(self.position, self.quaternion)
+            if self.route_name == "circle":
+                self.route = make_circle_route(
+                    self.position,
+                    self.quaternion,
+                    radius=self.route_config["radius_m"],
+                    direction=self.route_config["direction"],
+                )
+            else:
+                self.route = make_s_route(
+                    self.position,
+                    self.quaternion,
+                    first_turn_direction=self.route_config["first_turn_direction"],
+                    bend_radius=self.route_config["bend_radius_m"],
+                    turn_radius=self.route_config["turnaround_radius_m"],
+                    outbound_distance=self.route_config["outbound_distance_m"],
+                )
         except ValueError as exc:
             self.get_logger().error(f"Cannot create route: {exc}")
             return
@@ -285,7 +441,8 @@ class RouteNavigation(Node):
         self.hidden.fill(0)
         self.active = True
         self.get_logger().info(
-            f"Started {self.route_name} route at {self.position[:2].tolist()}; "
+            f"Started {self.route_name} route with config {self.route_config} "
+            f"at {self.position[:2].tolist()}; "
             "press L1 to stop"
         )
 
@@ -391,9 +548,17 @@ class RouteNavigation(Node):
         self.send_move(vx, vy, vyaw)
 
 
-def run_navigation(route_name):
+def run_navigation(route_name, argv=None):
+    args, route_config = load_route_config(route_name, argv)
+    if args.check_config:
+        print(
+            f"Validated {route_name} route config from {args.config}: "
+            f"{json.dumps(route_config, ensure_ascii=False, sort_keys=True)}"
+        )
+        return
+
     rclpy.init()
-    node = RouteNavigation(route_name)
+    node = RouteNavigation(route_name, route_config)
     pipeline = rs.pipeline()
     config = rs.config()
     config.enable_stream(rs.stream.depth, 640, 360, rs.format.z16, 30)

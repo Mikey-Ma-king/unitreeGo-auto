@@ -1,0 +1,6 @@
+{
+  "first_turn_direction": "left",
+  "bend_radius_m": 1.0,
+  "turnaround_radius_m": 1.0,
+  "outbound_distance_m": 20.0
+}
