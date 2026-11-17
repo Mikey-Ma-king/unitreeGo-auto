@@ -87,25 +87,95 @@ run_navigation("s_route")
 | `LOOKAHEAD_POINTS` | `3` | 路径跟踪的前视点数 |
 | `WAYPOINT_REACHED_DISTANCE` | `0.55 m` | 当前路径点在此距离内时推进路径索引 |
 | `STATE_TIMEOUT` | `1.0 s` | 机器人状态或深度帧的超时阈值 |
-| `CIRCLE_RADIUS` | `10.0 m` | 圆形参考路线半径 |
+| `CIRCLE_RADIUS` | `10.0 m` | 圆形参考路线半径默认值；运行配置可覆盖 |
 | `CIRCLE_SPACING` | `0.4 m` | 圆周采样的近似间距 |
-| `S_ROUTE_LENGTH` | `20.0 m` | S 型去程的前进距离 |
 | `S_ROUTE_SPACING` | `0.4 m` | S 曲线采样间距 |
-| `S_BEND_RADIUS` | `1.0 m` | 去程 S 弯的圆弧半径 |
-| `S_TURN_RADIUS` | `1.0 m` | 两端掉头半圆的半径 |
-| `S_BEND_PAIRS` | `10` | 去程 S 弯的弯道对数 |
+| `S_BEND_RADIUS` | `1.0 m` | 去程 S 弯圆弧半径默认值；运行配置可覆盖 |
+| `S_TURN_RADIUS` | `1.0 m` | 两端掉头半圆半径默认值；运行配置可覆盖 |
+| `S_ROUTE_LENGTH` | `20.0 m` | S 型去程纵向距离默认值；运行配置可覆盖 |
+
+路线参数优先级为：**命令行参数 > 对应 JSON 配置文件**。默认配置分别为 [`route_configs/circle.json`](./route_configs/circle.json) 和 [`route_configs/s_route.json`](./route_configs/s_route.json)。配置文件使用米为长度单位；命令行参数仅覆盖指定项，未指定项仍读取配置文件。启动脚本会在启动遥控器客户端之前验证配置和参数，配置错误时不会发送初始化 `StandDown` 请求。
+
+#### 圆形路线参数
+
+`route_configs/circle.json`：
+
+```json
+{
+  "direction": "counterclockwise",
+  "radius_m": 10.0
+}
+```
+
+| 配置项/参数 | 可用值 | 含义 |
+|---|---|---|
+| `direction` / `--direction` | `counterclockwise`、`clockwise` | 相对启动时的初始朝向，分别表示先向左弯/先向右弯并持续绕圈。 |
+| `radius_m` / `--radius` | 大于 0 的米数 | 圆形参考路线半径。 |
+
+示例：临时顺时针绕半径 8 米的圆，不改配置文件：
+
+```bash
+./run_dp_circle.sh --direction clockwise --radius 8
+```
+
+也可以用 `--config route_configs/my_circle.json` 指定另一份 JSON 配置。
+
+#### S 型路线参数
+
+`route_configs/s_route.json`：
+
+```json
+{
+  "first_turn_direction": "left",
+  "bend_radius_m": 1.0,
+  "turnaround_radius_m": 1.0,
+  "outbound_distance_m": 20.0
+}
+```
+
+| 配置项/参数 | 可用值 | 含义 |
+|---|---|---|
+| `first_turn_direction` / `--first-turn` | `left`、`right` | S 路线开始时第一个弯道的转向，相对启动时初始朝向。之后弯道左右交替。 |
+| `bend_radius_m` / `--bend-radius` | 大于 0 的米数 | S 路线中每个圆弧的参考半径。最后一个弯道对会按需生成部分圆弧，因此可以与去程距离独立设置。 |
+| `turnaround_radius_m` / `--turnaround-radius` | 大于 0 的米数 | 两端 180° 掉头半圆的参考半径。掉头方向不能单独配置，会根据首个弯道方向同步选择，以保持返程线与路线连接。 |
+| `outbound_distance_m` / `--outbound-distance` | 大于 0 的米数 | S 型去程沿初始前进方向的纵向距离。路线会自动计算所需完整弯道对数，并在末端补足部分弯道对。 |
+
+示例一：首个弯道向右，S 弯半径 1.5 米，去程 24 米，两端掉头半径 2 米：
+
+```bash
+./run_dp_s_route.sh --first-turn right --bend-radius 1.5 --outbound-distance 24 --turnaround-radius 2
+```
+
+示例二：从 JSON 配置启动并把去程距离临时覆盖为 12 米：
+
+```bash
+./run_dp_s_route.sh --outbound-distance 12
+```
+
+示例三：直接编辑 `route_configs/s_route.json`，永久调整 S 路线参数，例如：
+
+```json
+{
+  "first_turn_direction": "left",
+  "bend_radius_m": 1.0,
+  "turnaround_radius_m": 1.0,
+  "outbound_distance_m": 30.0
+}
+```
+
+同样可以用 `--config route_configs/my_s_route.json` 选择另一份配置文件。配置中的方向值区分大小写；半径必须是有限且大于 0 的数字。共享 Python 入口也接受相同参数，例如 `python dp_circle.py --radius 8`。可用 `--check-config` 只检查配置并打印最终参数，不启动 ROS 节点；启动脚本会自动先执行此检查。
 
 ### 2.1 圆形路线
 
-[`make_circle_route()`](./dp_route_navigation.py) 在 L2 启动时读取当前位置作为圆周上的起点，并使用当前机体朝向定义圆的切线方向。采样点按约 0.4 米的圆周间距生成，路径索引首尾循环，因此路线持续重复，直到停止或发生已处理的故障。
+[`make_circle_route()`](./dp_route_navigation.py) 在 L2 启动时读取当前位置作为圆周上的起点，并使用当前机体朝向定义圆的切线方向。方向和半径来自最终配置（命令行优先于 JSON）；采样点按约 0.4 米的圆周间距生成，路径索引首尾循环，因此路线持续重复，直到停止或发生已处理的故障。
 
-圆的**参考几何半径**为 10 米；这是路线点的半径，不是对实机运动轨迹半径的保证。位置估计误差、速度控制误差、打滑和避障偏移都会使实际轨迹偏离参考圆。
+圆的**默认参考几何半径**为 10 米；可用 JSON 或 `--radius` 修改。这是路线点的半径，不是对实机运动轨迹半径的保证。位置估计误差、速度控制误差、打滑和模型输出偏移都会使实际轨迹偏离参考圆。
 
 ### 2.2 S 型往返路线
 
-去程由 10 对弯道构成；每个弯道对由两个相反方向的 90°、半径 1 米圆弧组成，因此每对提供约 2 米的前向位移，10 对形成约 20 米去程。终点连接半径 1 米的半圆，接到一条横向错开的返程线；返程沿 S 弯点列倒序，回到起点后再由另一个半圆接回去程，形成循环闭合路线。
+去程距离由 `outbound_distance_m` 单独指定，默认 20 米。生成器按弯道半径计算需要的完整弯道对数，并在最后加入部分弯道对，使路线终点达到设定的纵向距离；因此修改 `bend_radius_m` 不会自动改变配置的去程距离。终点连接半径由配置指定的半圆，接到一条横向错开的返程线；返程沿 S 弯点列倒序，回到起点后再由另一个半圆接回去程，形成循环闭合路线。
 
-参考路线每个 S 弯与两端掉头弧线的设计半径都是 1 米。路线追踪误差、机器人能力和模型为障碍所作的调整会影响实机的实际转弯半径。半径 1 米是紧弯，实际运行前要确认场地宽度、狗的转弯能力和低速跟踪效果。
+参考路线每个 S 弯与两端掉头弧线的设计半径分别由 `bend_radius_m` 和 `turnaround_radius_m` 配置。路线追踪误差、机器人能力和模型为障碍所作的调整会影响实机的实际转弯半径。实际运行前要确认场地宽度、狗的转弯能力和低速跟踪效果。
 
 S 路线将模型的前进速度限制为 `vx >= 0`，避免主动发出倒车速度。它仍允许模型输出受限的侧向速度，不能据此保证狗完全不会侧移。
 
@@ -115,7 +185,7 @@ S 路线将模型的前进速度限制为 `vx >= 0`，避免主动发出倒车�
 
 每次启动前确认：
 
-- 机器人周围足够空旷。10 米半径圆需要约 20 米直径的空间；S 路线约 20 米前进，并且返程线和半径 1 米的掉头弧还需要额外侧向空间。
+- 机器人周围足够空旷。圆形路线需要至少覆盖配置半径的场地（默认半径 10 米，即约 20 米直径）；S 路线需要容纳配置的去程距离、返程线，以及由掉头半径决定的横向间距和机器人自身宽度。
 - RealSense 已连接，深度流可用，视野无遮挡；模型文件存在。
 - 主机与机器人网络及 CycloneDDS 网卡配置正确，`/lf/sportmodestate`、`/lf/lowstate` 正在更新。
 - 没有其他导航/运动节点同时发布机器人运动命令。
