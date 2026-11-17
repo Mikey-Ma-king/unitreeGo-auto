@@ -1,0 +1,11 @@
+{
+    "python.analysis.extraPaths": [
+        "./cyclonedds_ws/install/unitree_go/lib/python3.8/site-packages",
+        "./cyclonedds_ws/install/unitree_api/lib/python3.8/site-packages"
+    ],
+    "cmake.sourceDirectory": "${workspaceFolder}/Go2_ROS2_example/src",
+    "cmake.configureOnOpen": false,
+    "cmake.scanForKits": "never",
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda"
+}
